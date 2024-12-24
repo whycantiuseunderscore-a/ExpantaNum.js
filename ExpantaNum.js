@@ -1299,19 +1299,14 @@
         }
         b=true;
       }
-      for (i=1;i<x.array.length;++i){
+      for (i=0;i<x.array.length;++i){
         if (x.array[i][1]>MAX_SAFE_INTEGER){
           if (i!=x.array.length-1&&x.array[i+1][0]==x.array[i][0]+1){
             x.array[i+1][1]++;
           }else{
             x.array.splice(i+1,0,[x.array[i][0]+1,1]);
           }
-          if (x.array[0][0]===0){
-            x.array[0][1]=x.array[i][1]+1;
-          }else{
-            x.array.splice(0,0,[0,x.array[i][1]+1]);
-          }
-          x.array.splice(1,i);
+          x.array.splice(0,i+1,[0,x.array[i][1]+1]);
           b=true;
         }
       }
