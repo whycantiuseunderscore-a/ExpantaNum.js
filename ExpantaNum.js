@@ -1290,12 +1290,13 @@
         x.array[0][1]=10;
       }
       if (x.array.length>=2&&x.array[0][0]===0&&x.array[1][0]!=1){
-        if (x.array[0][1]) x.array.splice(1,0,[x.array[1][0]-1,x.array[0][1]]);
-        x.array[0][1]=1;
-        if (x.array[2][1]>1){
-          x.array[2][1]--;
+        var p=1;
+        if (Math.floor(x.array[0][1])) x.array.splice(1,0,[x.array[1][0]-1,Math.floor(x.array[0][1])]),p++;
+        x.array[0][1]=Math.pow(10,x.array[0][1]-Math.floor(x.array[0][1]));
+        if (x.array[p][1]>1){
+          x.array[p][1]--;
         }else{
-          x.array.splice(2,1);
+          x.array.splice(p,1);
         }
         b=true;
       }
