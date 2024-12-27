@@ -731,7 +731,7 @@
       else return new ExpantaNum(f_lambertw(x.sign*x.operator(0)));
     }else{
       if (x.ispos()) return ExpantaNum.NaN.clone();
-      if (x.abs().gt(ExpantaNum.EE_MAX_SAFE_INTEGER)) return x.neg().recip().lambertw().neg();
+      if (x.abs().gt(ExpantaNum.EE_MAX_SAFE_INTEGER)) return x.neg().rec().lambertw().neg();
       if (x.abs().gt(ExpantaNum.MAX_SAFE_INTEGER)) return d_lambertw(x,1e-10,false);
       else return new ExpantaNum(f_lambertw(x.sign*x.operator(0),1e-10,false));
     }
