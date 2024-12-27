@@ -262,7 +262,7 @@
           }
         }
         if (Math.abs(e-f)>1) return false;
-        else if (e!=f){
+        if (e!=f){
           if (!(x.array.length-i<2||x.array.length-i==2&&x.array[0][0]===0&&x.array[1][0]==1&&x.array[1][1]==1)) return false;
           a=x.array[0][1];
           if (c==1) b=Math.log10(y.operator(0));
@@ -874,6 +874,202 @@
   };
   Q.ssqrt=Q.ssrt=function (x){
     return new ExpantaNum(x).ssqrt();
+  };
+  //Uses linear approximation
+  //For more information, please see the break_eternity.js source:
+  //https://github.com/Patashu/break_eternity.js/blob/848736e3dc37d8e7b5cc238f46e3ddb277d0dce2/src/index.ts#L4008
+  P.linear_sroot=function (degree){
+    var x=new ExpantaNum(this);
+    degree=new ExpantaNum(degree);
+    if (degree.isNaN()) return ExpantaNum.NaN.clone();
+    var degreeNum=Number(degree);
+    if (degreeNum==1) return x;
+    if (x.eq(ExpantaNum.POSITIVE_INFINITY)) return ExpantaNum.POSITIVE_INFINITY.clone();
+    if (!x.isFinite()) return ExpantaNum.NaN.clone();
+    if (degreeNum>0&&degreeNum<1) return x.root(degree);
+    if (degreeNum>-2&&degreeNum<-1) return degree.add(2).pow(x.rec());
+    if (degreeNum<=0) return ExpantaNum.NaN.clone();
+    if (degree.gt(ExpantaNum.MAX_SAFE_INTEGER)){
+      var xNum=Number(x);
+      if (xNum<Math.E&&xNum>1/Math.E) return x.pow(x.rec());
+      if (x.gt(ExpantaNum.TETRATED_MAX_SAFE_INTEGER)){
+        var nh=x.slog(10).sub(degree);
+        if (nh.lte(ExpantaNum.ZERO)) return new ExpantaNum(Math.exp(1/Math.E));
+        return ExpantaNum.tetr(10,nh);
+      }
+      return ExpantaNum.NaN.clone();
+    }
+    if (x.eq(ExpantaNum.ONE)) return ExpantaNum.ONE.clone();
+    if (x.lt(ExpantaNum.ZERO)) return ExpantaNum.NaN.clone();
+    if (x.eq(ExpantaNum.ZERO)) return ExpantaNum.ZERO.clone();
+    if (x.gt(ExpantaNum.ONE)){
+      var upperBound;
+      if (degreeNum<=1) upperBound=x.root(degree);
+      else if (x.gte(ExpantaNum.tetr(10,degree))) upperBound=x.iteratedlog(10,degreeNum-1);
+      else upperBound=new ExpantaNum(10);
+      var lower=ExpantaNum.ZERO;
+      var layer=upperBound.array[2]||0;
+      var upper=upperBound.iteratedlog(10,layer);
+      var guess=upper.div(2);
+      while (true){
+        if (ExpantaNum.iteratedexp(10,layer,guess).tetr(degree).gt(x)) upper=guess;
+        else lower=guess;
+        var newguess=lower.add(upper).div(2);
+        if (newguess.eq(guess)) break;
+        guess=newguess;
+      }
+      return ExpantaNum.iteratedexp(10,layer,guess);
+    }else{
+      var BIG=new ExpantaNum("10^^10");
+      var stage=1;
+      var minimum=BIG;
+      var maximum=BIG;
+      var lower=BIG
+      var upper=new ExpantaNum(1e-16)
+      var prevspan=ExpantaNum.ZERO;
+      var difference=BIG;
+      var upperBound=ExpantaNum.pow(10,upper).rec();
+      var distance=ExpantaNum.ZERO;
+      var prevPoint=upperBound;
+      var nextPoint=upperBound;
+      var evenDegree=Math.ceil(degreeNum)%2==0;
+      var range=0;
+      var lastValid=BIG;
+      var infLoopDetector=false;
+      var previousUpper=ExpantaNum.ZERO;
+      var decreasingFound=false;
+      while (stage<4){
+        if (stage==2){
+          if (evenDegree) break;
+          lower=BIG;
+          upper=minimum;
+          stage=3;
+          difference=BIG;
+          lastValid=BIG;
+        }
+        infLoopDetector=false;
+        while (upper.neq(lower)){
+          previousUpper=upper;
+          var up10r=ExpantaNum.pow(10,upper).rec();
+          var up10rtd=up10r.tetr(degree);
+          if (up10rtd.eq(ExpantaNum.ONE)&&up10r.lt(0.4)){
+            upperBound=up10r;
+            prevPoint=up10r;
+            nextPoint=up10r;
+            distance=ExpantaNum.ZERO;
+            range=-1;
+            if (stage==3) lastValid=upper;
+          }else if (up10rtd.eq(up10r)&&!evenDegree&&up10r.lt(0.4)){
+            upperBound=up10r;
+            prevPoint=up10r;
+            nextPoint=up10r;
+            distance=ExpantaNum.ZERO;
+            range=0;
+          }else if (up10rtd.eq(up10r.mul(2).tetr(degree))){
+            upperBound=up10r;
+            prevPoint=ExpantaNum.ZERO;
+            nextPoint=upperBound.mul(2);
+            distance=upperBound;
+            if (evenDegree) range=-1;
+            else range=0;
+          }else{
+            prevspan=upper.mul(1.2e-16);
+            upperBound=up10r;
+            prevPoint=ExpantaNum.pow(10,upper.add(prevspan)).rec();
+            distance=upperBound.sub(prevPoint);
+            nextPoint=upperBound.add(distance);
+            var ubtd=upperBound.tetr(degree); //upperBound does not change during lifetime
+            var pptd;
+            var nptd;
+            while (prevPoint.gte(upperBound)||nextPoint.lte(upperBound)||(pptd=prevPoint.tetr(degree)).eq(ubtd)||(nptd=nextPoint.tetr(degree)).eq(ubtd)){
+              prevspan=prevspan.mul(2);
+              prevPoint=ExpantaNum.pow(10,upper.add(prevspan)).rec();
+              distance=upperBound.sub(prevPoint);
+              nextPoint=upperBound.add(distance);
+            }
+            //pptd and nptd are up-to-date
+            if (stage==1&&nptd.gt(ubtd)&&pptd.gt(ubtd)||stage==3&&nptd.lt(ubtd)&&pptd.lt(ubtd)) lastValid=upper;
+            if (nptd.lt(ubtd)) range=-1;
+            else if (evenDegree) range=1;
+            else if (stage==3&&upper.gt_tolerance(minimum,1e-8)) range=0;
+            else{
+              while (prevPoint.gte(upperBound)||nextPoint.lte(upperBound)||(pptd=prevPoint.tetr(degree)).eq_tolerance(ubtd,1e-8)||(nptd=nextPoint.tetr(degree)).eq_tolerance(ubtd,1e-8)){
+                prevspan=prevspan.mul(2);
+                prevPoint=ExpantaNum.pow(10,upper.add(prevspan)).rec();
+                distance=upperBound.sub(prevPoint);
+                nextPoint=upperBound.add(distance);
+              }
+              //pptd and nptd are up-to-date
+              if (nptd.sub(ubtd).lt(ubtd.sub(pptd))) range=0;
+              else range=1;
+            }
+          }
+          if (range==-1) decreasingFound=true;
+          if (stage==1&&range==1||stage==3&&range!=0){
+            if (lower.eq(BIG)) upper=upper.mul(2);
+            else{
+              upper=upper.add(lower).div(2);
+              if (infLoopDetector&&(range==1&&stage==1||range==-1&&stage==3)) break;
+            }
+          }else{
+            if (lower.eq(BIG)){
+              lower=upper;
+              upper=upper.div(2);
+            }else{
+              lower=lower.sub(difference);
+              upper=upper.sub(difference);
+              if (infLoopDetector&&(range==1&&stage==1||range==-1&&stage==3)) break;
+            }
+          }
+          var newDifference=lower.sub(upper).div(2).abs();
+          if (newDifference.gt(difference.mul(1.5))) infLoopDetector=true;
+          difference=newDifference;
+          if (upper.gt(1e18)||upper.eq(previousUpper)) break;
+        }
+        if (upper.gt(1e18)) break;
+        if (!decreasingFound) break;
+        if (lastValid.eq(BIG)) break;
+        if (stage==1) minimum=lastValid;
+        else if (stage==3) maximum=lastValid;
+        stage++;
+      }
+      lower=minimum;
+      upper=new ExpantaNum(1e-18);
+      var previous=upper;
+      var guess=ExpantaNum.ZERO;
+      var loopGoing=true;
+      while (loopGoing){
+        if (lower.eq(BIG)) guess=upper.mul(2);
+        else guess=lower.add(upper).div(2);
+        if (ExpantaNum.pow(10,guess).rec().tetr(degree).gt(x)) upper=guess;
+        else lower=guess;
+        if (guess.eq(previous)) loopGoing=false;
+        else previous=guess;
+        if (upper.gt(1e18)) return ExpantaNum.NaN.clone();
+      }
+      if (guess.neq_tolerance(minimum,1e-15)) return ExpantaNum.pow(10,guess).rec();
+      else{
+        if (maximum.eq(BIG)) return ExpantaNum.NaN.clone();
+        lower=BIG;
+        upper=maximum;
+        previous=upper;
+        guess=ExpantaNum.ZERO;
+        var loopGoing=true;
+        while (loopGoing){
+          if (lower.eq(BIG)) guess=upper.mul(2);
+          else guess=lower.add(upper).div(2);
+          if (ExpantaNum.pow(10,guess).rec().tetr(degree).gt(x)) upper=guess;
+          else lower=guess;
+          if (guess.eq(previous)) loopGoing=false;
+          else previous=guess;
+          if (upper.gt(1e18)) return ExpantaNum.NaN.clone();
+        }
+        return ExpantaNum.pow(10,guess).rec();
+      }
+    }
+  };
+  Q.linear_sroot=function (x,y){
+    return new ExpantaNum(x).linear_sroot(y);
   };
   //Super-logarithm, one of tetration's inverses, tells you what size power tower you'd have to tetrate base to to get number. By definition, will never be higher than 1.8e308 in break_eternity.js, since a power tower 1.8e308 numbers tall is the largest representable number.
   //Uses linear approximation
