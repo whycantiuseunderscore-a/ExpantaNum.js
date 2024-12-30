@@ -1243,6 +1243,7 @@
     if (arrows.eq(ExpantaNum.ONE)) return function(base){return x.logBase(base);};
     if (arrows.eq(2)) return function(base){return x.slog(base);};
     return function (base,depth){
+      if (base===undefined) base=10;
       if (depth===undefined) depth=0;
       base=new ExpantaNum(base);
       if (x.isNaN()||base.isNaN()||x.isInfinite()&&base.isInfinite()) return ExpantaNum.NaN.clone();
