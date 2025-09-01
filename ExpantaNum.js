@@ -929,6 +929,26 @@
   Q.slog=function (x,y){
     return new ExpantaNum(x).slog(y);
   };
+  P.superroot=P.srt=function (magnitude){
+    if (magnitude===undefined) magnitude=2;
+    var x=this.clone();
+    var y=new ExpantaNum(0);
+    var num = ((new ExpantaNum(x).gte(new ExpantaNum(10).tetrate(magnitude)))?new ExpantaNum(8).mul(new ExpantaNum(10).tetrate(new ExpantaNum(x).slog().sub(new ExpantaNum(magnitude).sub(1))).div(new ExpantaNum(10).tetrate(x.slog().sub(magnitude)))):new ExpantaNum(4));
+    for (let i = 0; i < 150; i++) {
+      if (y.tetrate(magnitude).gt(x)) {
+        if (num.lt("ee16")) {
+          y = y.sub(num);
+          num = num.div(2);
+        }
+      } else {
+        y = y.add(num);
+      }
+    }
+    return y;
+  };
+  Q.superroot=Q.srt=function (x,y){
+    return new ExpantaNum(x).srt(y);
+  };
   //end break_eternity.js excerpt
   P.pentate=P.pent=function (other){
     return this.arrow(3)(other);
@@ -1873,3 +1893,4 @@
     globalScope.ExpantaNum = ExpantaNum;
   }
 })(this);
+
