@@ -934,7 +934,7 @@
     var x=this.clone();
     var y=new ExpantaNum(0);
     var num = ((new ExpantaNum(x).gte(new ExpantaNum(10).tetrate(magnitude)))?new ExpantaNum(8).mul(new ExpantaNum(10).tetrate(new ExpantaNum(x).slog().sub(new ExpantaNum(magnitude).sub(1))).div(new ExpantaNum(10).tetrate(x.slog().sub(magnitude)))):new ExpantaNum(4));
-    if (magnitude.lt(MAX_SAFE_INTEGER)) {
+    if (new ExpantaNum(magnitude).lt(MAX_SAFE_INTEGER)) {
     for (let i = 0; i < 150; i++) {
       if (y.tetrate(magnitude).gt(x)) {
         if (num.lt("ee16")) {
@@ -947,7 +947,7 @@
     }
     return y;
     } else {
-      return (magnitude.gte(x.slog()))?new ExpantaNum(1):new ExpantaNum(10).tetrate(x.slog().sub(magnitude));
+      return (new ExpantaNum(magnitude).gte(new ExpantaNum(x).slog()))?new ExpantaNum(1):new ExpantaNum(10).tetrate(new ExpantaNum(x).slog().sub(magnitude));
     }
   };
   Q.superroot=Q.srt=function (x,y){
@@ -1897,5 +1897,6 @@
     globalScope.ExpantaNum = ExpantaNum;
   }
 })(this);
+
 
 
